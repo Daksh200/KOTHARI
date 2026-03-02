@@ -1,6 +1,6 @@
 'use client';
 import React from 'react';
-import LoginForm from '../../components/LoginForm';
+import LoginFormWrapper from '../../components/LoginFormWrapper';
 
 export default function LoginPage() {
   return (
@@ -20,7 +20,7 @@ export default function LoginPage() {
           </p>
         </div>
         <div className="relative z-10">
-          <LoginForm />
+          <LoginFormWrapper />
         </div>
       </div>
     </div>
