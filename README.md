@@ -53,6 +53,27 @@ If `PRINTER_TCP_*` are unset, ESC/POS output will be written to `./.prints` when
 > 
 > In production or staging use `npx prisma migrate deploy` instead of `migrate dev`.
 
+## Default login users
+
+Run once:
+
+```bash
+node create-users.js
+```
+
+Then login with:
+
+- `admin@furnish.local / Admin@1234`
+- `staff@furnish.local / Staff@1234`
+
+## Core pages
+
+- `/dashboard` - sales summary and quick navigation
+- `/billing` - counter billing (POS)
+- `/products` - product catalog and pricing
+- `/inventory` - stock in / out / adjustment
+- `/reports` - admin reports and top products
+
 ## Deploy on Vercel
 
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.

@@ -1,0 +1,314 @@
+// Production-ready Prisma schema for Furnish POS
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Unit {
+  PIECE
+  METER
+  ROLL
+}
+
+enum InventoryTxType {
+  IN
+  OUT
+  ADJUSTMENT
+  SALE
+  RETURN
+  PURCHASE
+}
+
+enum InvoiceType {
+  GST
+  NON_GST
+}
+
+enum InvoiceState {
+  DRAFT
+  PARTIAL
+  PAID
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentType {
+  CASH
+  CARD
+  UPI
+  BANK
+  ADVANCE
+  REFUND
+}
+
+model Role {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  permissions Json
+  users       User[]
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  name         String?
+  passwordHash String
+  role         Role     @relation(fields: [roleId], references: [id])
+  roleId       Int
+  isActive     Boolean  @default(true)
+  lastLogin    DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  auditLogs    AuditLog[] @relation("userAudit")
+  inventoryTransactions InventoryTransaction[]
+  issuedInvoices Invoice[]
+  createdPayments Payment[] @relation("userCreatedPayments")
+  createdAdvancePayments AdvancePayment[]
+  processedReturns Return[]
+}
+
+model Customer {
+  id        Int      @id @default(autoincrement())
+  name      String
+  phone     String?
+  email     String?
+  gstin     String?
+  address   String?
+  city      String?
+  pincode   String?
+  isActive  Boolean  @default(true)
+  invoices  Invoice[]
+  advances  AdvancePayment[]
+  payments  Payment[]
+  createdAt DateTime @default(now())
+}
+
+model Supplier {
+  id        Int      @id @default(autoincrement())
+  name      String
+  contact   String?
+  gstin     String?
+  address   String?
+  createdAt DateTime @default(now())
+  purchases PurchaseOrder[]
+}
+
+model TaxRate {
+  id         Int     @id @default(autoincrement())
+  name       String  @unique
+  percentage Float
+  createdAt  DateTime @default(now())
+  products   Product[]
+  purchaseItems PurchaseItem[]
+  invoiceItems InvoiceItem[]
+}
+
+model Product {
+  id          Int       @id @default(autoincrement())
+  sku         String    @unique
+  name        String
+  description String?
+  category    String?
+  hsnCode     String?
+  basePrice   Float
+  costPrice   Float?
+  taxRate     TaxRate?  @relation(fields: [taxRateId], references: [id])
+  taxRateId   Int?
+  unit        Unit
+  isService   Boolean   @default(false)
+  isActive    Boolean   @default(true)
+  variants    ProductVariant[]
+  inventory   InventoryItem[]
+  invoiceItems InvoiceItem[]
+  purchaseItems PurchaseItem[]
+  createdAt   DateTime  @default(now())
+  returnItems ReturnItem[]
+}
+
+model ProductVariant {
+  id         Int     @id @default(autoincrement())
+  product    Product @relation(fields: [productId], references: [id])
+  productId  Int
+  variantName String?
+  barcode    String? @unique
+  price      Float
+  costPrice  Float?
+  attributes Json?
+  inventory  InventoryItem[]
+}
+
+model InventoryItem {
+  id                Int     @id @default(autoincrement())
+  product           Product @relation(fields: [productId], references: [id])
+  productId         Int
+  variant           ProductVariant? @relation(fields: [variantId], references: [id])
+  variantId         Int?
+  location          String  @default("main")
+  totalQuantity     Float   @default(0)
+  rollTotalMeters   Float?
+  rollRemainingMeters Float?
+  lastStockAt       DateTime?
+  txs               InventoryTransaction[]
+  @@index([productId])
+  @@index([location])
+}
+
+model InventoryTransaction {
+  id             Int            @id @default(autoincrement())
+  inventoryItem  InventoryItem  @relation(fields: [inventoryItemId], references: [id])
+  inventoryItemId Int
+  type           InventoryTxType
+  changeQty      Float
+  changeMeters   Float?
+  referenceType  String?
+  referenceId    Int?
+  performedBy    User? @relation(fields: [performedById], references: [id])
+  performedById  Int?
+  note           String?
+  createdAt      DateTime @default(now())
+}
+
+model PurchaseOrder {
+  id         Int      @id @default(autoincrement())
+  supplier   Supplier @relation(fields: [supplierId], references: [id])
+  supplierId Int
+  orderNumber String  @unique
+  status     String   @default("CREATED")
+  items      PurchaseItem[]
+  createdAt  DateTime @default(now())
+  receivedAt DateTime?
+}
+
+model PurchaseItem {
+  id            Int         @id @default(autoincrement())
+  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
+  purchaseOrderId Int
+  product       Product     @relation(fields: [productId], references: [id])
+  productId     Int
+  variantId     Int?
+  qty           Float
+  meters        Float?
+  unitPrice     Float
+  taxRate       TaxRate?    @relation(fields: [taxRateId], references: [id])
+  taxRateId     Int?
+}
+
+model Invoice {
+  id           Int          @id @default(autoincrement())
+  invoiceNumber String      @unique
+  customer     Customer?    @relation(fields: [customerId], references: [id])
+  customerId   Int?
+  type         InvoiceType
+  state        InvoiceState @default(DRAFT)
+  taxableAmount Float
+  totalTax     Float
+  totalAmount  Float
+  roundOff     Float
+  createdAt    DateTime @default(now())
+  issuedBy     User? @relation(fields: [issuedById], references: [id])
+  issuedById   Int?
+  items        InvoiceItem[]
+  payments     Payment[]
+  returns      Return[]
+  
+  @@index([invoiceNumber])
+}
+
+model InvoiceItem {
+  id         Int     @id @default(autoincrement())
+  invoice    Invoice @relation(fields: [invoiceId], references: [id])
+  invoiceId  Int
+  product    Product @relation(fields: [productId], references: [id])
+  productId  Int
+  variantId  Int?
+  description String?
+  qty        Float
+  meters     Float?
+  unitPrice  Float
+  discount   Float  @default(0)
+  taxRate    TaxRate? @relation(fields: [taxRateId], references: [id])
+  taxRateId  Int?
+  cgst       Float?
+  sgst       Float?
+  igst       Float?
+  lineTotal  Float
+  returnItems ReturnItem[]
+}
+
+model Payment {
+  id          Int       @id @default(autoincrement())
+  invoice     Invoice?  @relation(fields: [invoiceId], references: [id])
+  invoiceId   Int?
+  customer    Customer? @relation(fields: [customerId], references: [id])
+  customerId  Int?
+  type        PaymentType
+  amount      Float
+  instrumentRef String?
+  createdAt   DateTime @default(now())
+  createdBy   User? @relation("userCreatedPayments", fields: [createdById], references: [id])
+  createdById Int?
+  status      String   @default("COMPLETED")
+  notes       String?
+}
+
+model AdvancePayment {
+  id             Int      @id @default(autoincrement())
+  customer       Customer @relation(fields: [customerId], references: [id])
+  customerId     Int
+  amount         Float
+  allocatedAmount Float @default(0)
+  remainingAmount Float
+  createdBy      User?   @relation(fields: [createdById], references: [id])
+  createdById    Int?
+  createdAt      DateTime @default(now())
+  notes          String?
+}
+
+model Return {
+  id          Int      @id @default(autoincrement())
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id])
+  invoiceId   Int
+  returnNumber String  @unique
+  processedBy User?    @relation(fields: [processedById], references: [id])
+  processedById Int?
+  totalRefund Float
+  state       String
+  createdAt   DateTime @default(now())
+  items       ReturnItem[]
+}
+
+model ReturnItem {
+  id         Int     @id @default(autoincrement())
+  returnRef  Return  @relation(fields: [returnId], references: [id])
+  returnId   Int
+  invoiceItem InvoiceItem @relation(fields: [invoiceItemId], references: [id])
+  invoiceItemId Int
+  product    Product @relation(fields: [productId], references: [id])
+  productId  Int
+  qty        Float
+  meters     Float?
+  reason     String?
+  restock    Boolean @default(true)
+  refundAmount Float
+}
+
+model AuditLog {
+  id         Int     @id @default(autoincrement())
+  entityType String
+  entityId   Int?
+  action     String
+  performedBy User? @relation("userAudit", fields: [performedById], references: [id])
+  performedById Int?
+  meta       Json?
+  createdAt  DateTime @default(now())
+}
+
+model Setting {
+  key   String @id
+  value Json
+}
