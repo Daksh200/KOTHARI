@@ -10,17 +10,22 @@ import { withErrorHandling, extractAuthUser } from '@/app/lib/validation';
 
 const prisma = new PrismaClient();
 
+type RouteParams = {
+  params: Promise<{ id: string }>;
+};
+
 /**
  * GET /api/customers/[id]
  * Get single customer details with payment history
  */
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: RouteParams) {
   // Check auth
   const { user, response } = await extractAuthUser(req);
   if (!user) return response;
 
   try {
-    const customerId = parseInt(params.id);
+    const { id } = await params;
+    const customerId = parseInt(id);
 
     const customer = await prisma.customer.findUnique({
       where: { id: customerId },
@@ -62,14 +67,15 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
  */
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: RouteParams
 ) {
   // Check auth
   const { user, response } = await extractAuthUser(req);
   if (!user) return response;
 
   try {
-    const customerId = parseInt(params.id);
+    const { id } = await params;
+    const customerId = parseInt(id);
 
     // Validate request
     const body = await req.json();
@@ -122,14 +128,15 @@ export async function PUT(
  */
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: RouteParams
 ) {
   // Check auth
   const { user, response } = await extractAuthUser(req);
   if (!user) return response;
 
   try {
-    const customerId = parseInt(params.id);
+    const { id } = await params;
+    const customerId = parseInt(id);
 
     // Check if customer has invoices
     const invoiceCount = await prisma.invoice.count({
