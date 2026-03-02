@@ -1,8 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Disable Turbopack to use webpack (needed for pdfkit compatibility)
-  turbopack: false,
   webpack: (config, { isServer }) => {
     // Handle pdfkit/fontkit compatibility issue - mark as external on client
     config.externals = [

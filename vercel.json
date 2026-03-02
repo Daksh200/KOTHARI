@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npx prisma generate && npm run build",
+  "buildCommand": "npx prisma generate && npx next build --webpack",
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "framework": "nextjs",
