@@ -52,6 +52,12 @@ export default function LoginForm() {
       <p className="mb-6 text-center text-sm text-slate-600">
         Sign in to continue to Furnish POS
       </p>
+      
+      <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+        <p className="font-medium">Demo Mode</p>
+        <p className="mt-1">Admin: <code className="bg-amber-100 px-1 rounded">admin@furnish.local</code> / <code className="bg-amber-100 px-1 rounded">Admin@1234</code></p>
+        <p>Staff: <code className="bg-amber-100 px-1 rounded">staff@furnish.local</code> / <code className="bg-amber-100 px-1 rounded">Staff@1234</code></p>
+      </div>
 
       {error && (
         <p className="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">

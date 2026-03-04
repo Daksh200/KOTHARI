@@ -10,9 +10,9 @@ const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-key-change-in-prod';
 const JWT_EXPIRE = process.env.JWT_EXPIRE || '7d';
 
 export interface JWTPayload {
-  userId: number;
+  userId: number | string;
   email: string;
-  roleId: number;
+  roleId: number | string;
   role?: string;
   iat?: number;
   exp?: number;

@@ -8,10 +8,21 @@ import {
   successResponse,
   validationErrorResponse,
   ConflictError,
+  forbiddenResponse,
 } from '@/app/lib/error-handler';
 import { withErrorHandling, extractAuthUser, extractPagination } from '@/app/lib/validation';
+import { isDemoMode } from '@/app/lib/demo-auth';
 
 const prisma = new PrismaClient();
+
+// Demo customers for demonstration
+const DEMO_CUSTOMERS = [
+  { id: 1, name: 'John Doe', email: 'john@example.com', phone: '9876543210', city: 'Mumbai', totalAdvanceBalance: 5000, createdAt: new Date() },
+  { id: 2, name: 'Jane Smith', email: 'jane@example.com', phone: '9876543211', city: 'Delhi', totalAdvanceBalance: 2500, createdAt: new Date() },
+  { id: 3, name: 'Raj Patel', email: 'raj@example.com', phone: '9876543212', city: 'Ahmedabad', totalAdvanceBalance: 0, createdAt: new Date() },
+  { id: 4, name: 'Amit Kumar', email: 'amit@example.com', phone: '9876543213', city: 'Bangalore', totalAdvanceBalance: 10000, createdAt: new Date() },
+  { id: 5, name: 'Suresh Iyer', email: 'suresh@example.com', phone: '9876543214', city: 'Chennai', totalAdvanceBalance: 1500, createdAt: new Date() },
+];
 
 /**
  * POST /api/customers
@@ -22,6 +33,11 @@ export const POST = withErrorHandling(async (req: NextRequest) => {
   // Check auth
   const { user, response } = await extractAuthUser(req);
   if (!user) return response;
+
+  // Demo mode - deny creation
+  if (isDemoMode()) {
+    return forbiddenResponse('Customer creation is disabled in demo mode');
+  }
 
   // Validate request
   const body = await req.json();
@@ -83,6 +99,16 @@ export async function GET(req: NextRequest) {
   // Check auth
   const { user, response } = await extractAuthUser(req);
   if (!user) return response;
+
+  // Return demo customers in demo mode
+  if (isDemoMode()) {
+    return successResponse({
+      total: DEMO_CUSTOMERS.length,
+      page: 1,
+      limit: 20,
+      customers: DEMO_CUSTOMERS,
+    });
+  }
 
   try {
     // Extract pagination

@@ -2,8 +2,18 @@ import { NextRequest } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { successResponse, validationErrorResponse } from '@/app/lib/error-handler';
 import { withErrorHandling } from '@/app/lib/validation';
+import { isDemoMode } from '@/app/lib/demo-auth';
 
 const prisma = new PrismaClient();
+
+// Demo products for POS search
+const DEMO_SEARCH_PRODUCTS = [
+  { id: 1, name: 'Wooden Chair', sku: 'CHR001', barcode: '8901234001', category: 'Furniture', unit: 'PIECE', price: 1500, taxRate: 18, inventory: { quantity: 25, meters: 0, location: 'Main Store' } },
+  { id: 2, name: 'Dining Table', sku: 'TBL001', barcode: '8901234002', category: 'Furniture', unit: 'PIECE', price: 8500, taxRate: 18, inventory: { quantity: 8, meters: 0, location: 'Main Store' } },
+  { id: 3, name: 'Sofa Set', sku: 'SOF001', barcode: '8901234003', category: 'Furniture', unit: 'PIECE', price: 25000, taxRate: 18, inventory: { quantity: 3, meters: 0, location: 'Main Store' } },
+  { id: 4, name: 'Book Shelf', sku: 'SHF001', barcode: '8901234004', category: 'Furniture', unit: 'PIECE', price: 4500, taxRate: 18, inventory: { quantity: 12, meters: 0, location: 'Main Store' } },
+  { id: 5, name: 'TV Unit', sku: 'TVU001', barcode: '8901234005', category: 'Furniture', unit: 'PIECE', price: 12000, taxRate: 18, inventory: { quantity: 5, meters: 0, location: 'Warehouse' } },
+];
 
 /**
  * GET /api/products/search?query=string&barcode=string&sku=string&includeOutOfStock=false
@@ -20,13 +30,39 @@ const prisma = new PrismaClient();
  * Returns: Array of products with inventory status
  */
 export const GET = withErrorHandling(async (req: NextRequest) => {
-  try {
-    const url = new URL(req.url);
-    const query = url.searchParams.get('query')?.trim() || '';
-    const barcode = url.searchParams.get('barcode')?.trim();
-    const sku = url.searchParams.get('sku')?.trim();
-    const includeOutOfStock = url.searchParams.get('includeOutOfStock') === 'true';
+  const url = new URL(req.url);
+  const query = url.searchParams.get('query')?.trim() || '';
+  const barcode = url.searchParams.get('barcode')?.trim();
+  const sku = url.searchParams.get('sku')?.trim();
+  const includeOutOfStock = url.searchParams.get('includeOutOfStock') === 'true';
 
+  // Return demo products in demo mode
+  if (isDemoMode()) {
+    let filteredProducts = DEMO_SEARCH_PRODUCTS;
+    
+    // Filter based on search query
+    if (query || barcode || sku) {
+      filteredProducts = DEMO_SEARCH_PRODUCTS.filter(p => {
+        if (barcode && p.barcode === barcode) return true;
+        if (sku && p.sku.includes(sku)) return true;
+        if (query && (p.name.toLowerCase().includes(query.toLowerCase()) || p.sku.toLowerCase().includes(query.toLowerCase()))) return true;
+        return false;
+      });
+    }
+    
+    // Filter out of stock if requested
+    if (!includeOutOfStock) {
+      filteredProducts = filteredProducts.filter(p => p.inventory.quantity > 0);
+    }
+
+    return successResponse({
+      total: filteredProducts.length,
+      products: filteredProducts,
+      query: { query, barcode, sku, includeOutOfStock },
+    });
+  }
+
+  try {
     // Validate that at least one search parameter is provided
     if (!query && !barcode && !sku) {
       return validationErrorResponse(

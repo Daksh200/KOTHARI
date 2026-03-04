@@ -6,12 +6,37 @@ import {
   unauthorizedResponse,
   forbiddenResponse,
 } from '@/app/lib/error-handler';
+import { isDemoMode } from '@/app/lib/demo-auth';
 
 const prisma = new PrismaClient();
+
+// Demo reports data for demonstration
+const DEMO_REPORT_DATA = {
+  dailySale: 15680,
+  monthlySale: 234500,
+  invoicesToday: 12,
+  topProducts: [
+    { productId: 1, name: 'Wooden Chair', revenue: 45000, qty: 30, estimatedProfit: 21000 },
+    { productId: 2, name: 'Dining Table', revenue: 34000, qty: 4, estimatedProfit: 14000 },
+    { productId: 3, name: 'Sofa Set', revenue: 75000, qty: 3, estimatedProfit: 30000 },
+    { productId: 4, name: 'Book Shelf', revenue: 22500, qty: 5, estimatedProfit: 10000 },
+    { productId: 5, name: 'TV Unit', revenue: 36000, qty: 3, estimatedProfit: 15000 },
+  ],
+  estimatedProfitToday: 21000,
+  period: {
+    startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString(),
+    endDate: new Date().toISOString(),
+  },
+};
 
 export async function GET(req: NextRequest) {
   const session = await requireAuth(req);
   if (!session) return unauthorizedResponse();
+
+  // Return demo data in demo mode
+  if (isDemoMode()) {
+    return successResponse(DEMO_REPORT_DATA);
+  }
 
   try {
     const dbUser = await prisma.user.findUnique({

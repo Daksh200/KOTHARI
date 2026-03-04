@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { verifyToken, extractToken, JWTPayload } from '@/app/lib/auth-utils';
+import { getDemoRole, isDemoMode } from '@/app/lib/demo-auth';
 
 const prisma = new PrismaClient();
 
@@ -53,8 +54,18 @@ export async function requireRole(
     return false;
   }
 
+  // In demo mode, use demo roles
+  if (isDemoMode()) {
+    const demoRole = getDemoRole(user.roleId);
+    if (!demoRole) {
+      return false;
+    }
+    return allowedRoles.map((r) => r.toUpperCase()).includes(demoRole.name.toUpperCase());
+  }
+
+  // In production mode, use database roles
   const role = await prisma.role.findUnique({
-    where: { id: user.roleId },
+    where: { id: Number(user.roleId) },
     select: { name: true },
   });
 

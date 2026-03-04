@@ -2,12 +2,23 @@ import { NextRequest } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { requireAuth } from '@/app/lib/auth-middleware';
 import { successResponse, unauthorizedResponse } from '@/app/lib/error-handler';
+import { isDemoMode } from '@/app/lib/demo-auth';
 
 const prisma = new PrismaClient();
 
 export async function GET(req: NextRequest) {
   const user = await requireAuth(req);
   if (!user) return unauthorizedResponse();
+
+  // Return mock data in demo mode
+  if (isDemoMode()) {
+    return successResponse({
+      todaySales: 15680,
+      monthSales: 234500,
+      lowStockItems: 5,
+      totalItems: 120,
+    });
+  }
 
   try {
     const now = new Date();

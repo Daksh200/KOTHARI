@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import CommandPalette from './CommandPalette';
 
 type SessionUser = {
@@ -56,18 +56,26 @@ const navGroups: NavGroup[] = [
 export default function AppShell({ title, children }: AppShellProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const [user] = useState<SessionUser | null>(() => {
-    if (typeof window === 'undefined') return null;
-    const storedUser = localStorage.getItem('user');
-    if (!storedUser) return null;
-    try {
-      return JSON.parse(storedUser) as SessionUser;
-    } catch {
-      return null;
-    }
-  });
+  const [user, setUser] = useState<SessionUser | null>(null);
+  const [mounted, setMounted] = useState(false);
 
-  const isAdmin = (user?.role || '').toUpperCase() === 'ADMIN';
+  // Load user from localStorage only on client side to avoid hydration mismatch
+  useEffect(() => {
+    setMounted(true);
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      try {
+        setUser(JSON.parse(storedUser) as SessionUser);
+      } catch {
+        // ignore parse errors
+      }
+    }
+  }, []);
+
+  // Prevent hydration mismatch by not rendering user-dependent content until mounted
+  const displayUser = mounted ? user : null;
+
+  const isAdmin = (displayUser?.role || '').toUpperCase() === 'ADMIN';
 
   const visibleGroups = useMemo(
     () =>
@@ -138,9 +146,9 @@ export default function AppShell({ title, children }: AppShellProps) {
 
           <div className="mt-8 rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-slate-300">
             <p className="font-medium text-slate-200">
-              {user?.name || user?.email || 'User'}
+              {displayUser?.name || displayUser?.email || 'User'}
             </p>
-            <p className="text-slate-400">{user?.role || 'STAFF'}</p>
+            <p className="text-slate-400">{displayUser?.role || 'STAFF'}</p>
           </div>
         </aside>
 

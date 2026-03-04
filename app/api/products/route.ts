@@ -9,8 +9,18 @@ import {
 } from '@/app/lib/error-handler';
 import { withErrorHandling, extractAuthUser } from '@/app/lib/validation';
 import { requireRole } from '@/app/lib/auth-middleware';
+import { isDemoMode } from '@/app/lib/demo-auth';
 
 const prisma = new PrismaClient();
+
+// Demo products for demonstration
+const DEMO_PRODUCTS = [
+  { id: 1, name: 'Wooden Chair', sku: 'CHR001', category: 'Furniture', basePrice: 1500, costPrice: 800, stock: 25, isActive: true, gstRate: 18, unit: 'PIECE' },
+  { id: 2, name: 'Dining Table', sku: 'TBL001', category: 'Furniture', basePrice: 8500, costPrice: 5000, stock: 8, isActive: true, gstRate: 18, unit: 'PIECE' },
+  { id: 3, name: 'Sofa Set', sku: 'SOF001', category: 'Furniture', basePrice: 25000, costPrice: 15000, stock: 3, isActive: true, gstRate: 18, unit: 'PIECE' },
+  { id: 4, name: 'Book Shelf', sku: 'SHF001', category: 'Furniture', basePrice: 4500, costPrice: 2500, stock: 12, isActive: true, gstRate: 18, unit: 'PIECE' },
+  { id: 5, name: 'TV Unit', sku: 'TVU001', category: 'Furniture', basePrice: 12000, costPrice: 7000, stock: 5, isActive: true, gstRate: 18, unit: 'PIECE' },
+];
 
 const CreateProductPayload = z.object({
   name: z.string().min(2),
@@ -30,6 +40,16 @@ const CreateProductPayload = z.object({
 export const GET = withErrorHandling(async (req: NextRequest) => {
   const { user, response } = await extractAuthUser(req);
   if (!user) return response;
+
+  // Return demo products in demo mode
+  if (isDemoMode()) {
+    return successResponse({
+      total: DEMO_PRODUCTS.length,
+      page: 1,
+      limit: 50,
+      products: DEMO_PRODUCTS,
+    });
+  }
 
   const url = new URL(req.url);
   const page = Math.max(1, parseInt(url.searchParams.get('page') || '1'));
@@ -82,6 +102,11 @@ export const GET = withErrorHandling(async (req: NextRequest) => {
 export const POST = withErrorHandling(async (req: NextRequest) => {
   const { user, response } = await extractAuthUser(req);
   if (!user) return response;
+
+  // Demo mode - deny creation
+  if (isDemoMode()) {
+    return forbiddenResponse('Product creation is disabled in demo mode');
+  }
 
   const isAdmin = await requireRole(req, ['ADMIN']);
   if (!isAdmin) return forbiddenResponse('Only administrators can create products');

@@ -1,39 +1,45 @@
 # Furnish POS Application
 
-This workspace contains the **Furnish POS** system: a full-stack point‑of‑sale application for a furnishing shop. Backend APIs are implemented with Next.js API routes and Prisma. The frontend uses Next.js App Router with React, TypeScript and Tailwind CSS to deliver a cashier‑friendly interface.
+This workspace contains the **Furnish POS** system: a full-stack point‑of‑sale application for a furnishing shop. Backend APIs are implemented with Next.js API routes and Prisma with PostgreSQL. The frontend uses Next.js App Router with React, TypeScript and Tailwind CSS to deliver a cashier‑friendly interface.
 
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+
+## Features
+
+- **Dashboard** - Sales summary and quick navigation
+- **Billing/POS** - Counter billing with product search
+- **Products** - Product catalog and pricing management
+- **Inventory** - Stock in / out / adjustment
+- **Customers** - Customer management with advance payments
+- **Reports** - Admin reports and top products
+- **Day Book** - Daily transactions record
 
 ## Getting Started
 
 First, run the development server:
 
-```bash
+```
+bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Default Login Users
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Run once to create users:
 
-## Learn More
+```
+bash
+node create-users.js
+```
 
-To learn more about Next.js, take a look at the following resources:
+Then login with:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `admin@furnish.local / Admin@1234` (Admin access)
+- `staff@furnish.local / Staff@1234` (Staff access)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Environment configuration
+## Environment Configuration
 
 Before deploying you will need to set several environment variables in the hosting platform or `.env` file:
 
@@ -44,35 +50,25 @@ Before deploying you will need to set several environment variables in the hosti
 
 If `PRINTER_TCP_*` are unset, ESC/POS output will be written to `./.prints` when the print endpoint is called; this is useful for staging without a physical printer.
 
-> **Database setup:** after updating the Prisma schema (e.g. adding fields such as `isActive`, `city`, `pincode`) run
+> **Database setup:** after updating the Prisma schema run:
 > 
-> ```bash
+> 
+```
+bash
 > npx prisma migrate dev   # apply migrations locally
 > npx prisma generate      # regenerate client types for TypeScript
-> ```
+> 
+```
 > 
 > In production or staging use `npx prisma migrate deploy` instead of `migrate dev`.
 
-## Default login users
+## Core Pages
 
-Run once:
-
-```bash
-node create-users.js
-```
-
-Then login with:
-
-- `admin@furnish.local / Admin@1234`
-- `staff@furnish.local / Staff@1234`
-
-## Core pages
-
-- `/dashboard` - sales summary and quick navigation
-- `/billing` - counter billing (POS)
-- `/products` - product catalog and pricing
-- `/inventory` - stock in / out / adjustment
-- `/reports` - admin reports and top products
+- `/dashboard` - Sales summary and quick navigation
+- `/billing` - Counter billing (POS)
+- `/products` - Product catalog and pricing
+- `/inventory` - Stock in / out / adjustment
+- `/reports` - Admin reports and top products
 
 ## Deploy on Vercel
 
@@ -80,13 +76,35 @@ The easiest way to deploy your Next.js app is to use the [Vercel Platform](https
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
 
-### End-to-End Tests
+## End-to-End Tests
 
 The repository includes a set of Playwright tests under `tests/` which exercise the POS keyboard workflow. To run them:
 
-```bash
+```
+bash
 npm install # ensure dependencies including @playwright/test
 npm run dev  # start the app
 npm run test:e2e
 ```
-# KOTHARI
+
+## Project Structure
+
+```
+├── app/                    # Next.js App Router
+│   ├── api/               # API routes
+│   ├── billing/          # Billing/POS page
+│   ├── dashboard/        # Dashboard page
+│   ├── products/         # Products management
+│   ├── inventory/        # Inventory management
+│   ├── customers/        # Customer management
+│   ├── reports/          # Reports page
+│   └── login/            # Login page
+├── components/           # React components
+├── lib/                  # Utility libraries
+├── prisma/               # Database schema and migrations
+└── tests/                # E2E tests
+```
+
+---
+
+**KOTHARI Furnishing POS** - Built with Next.js, Prisma, PostgreSQL, and Tailwind CSS

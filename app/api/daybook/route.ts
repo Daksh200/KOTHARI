@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { requireAuth } from '@/app/lib/auth-middleware';
 import { successResponse, unauthorizedResponse } from '@/app/lib/error-handler';
+import { isDemoMode } from '@/app/lib/demo-auth';
 
 const prisma = new PrismaClient();
 
@@ -15,9 +16,32 @@ type DayBookEntry = {
   mode?: string;
 };
 
+// Demo daybook entries for demonstration
+const DEMO_ENTRIES: DayBookEntry[] = [
+  { id: 'I-1', date: new Date().toISOString(), type: 'INVOICE', voucherNo: 'INV-2024-001', party: 'John Doe', amount: 15000 },
+  { id: 'I-2', date: new Date().toISOString(), type: 'INVOICE', voucherNo: 'INV-2024-002', party: 'Jane Smith', amount: 8500 },
+  { id: 'P-1', date: new Date().toISOString(), type: 'PAYMENT', voucherNo: 'INV-2024-001', party: 'John Doe', amount: 15000, mode: 'CASH' },
+  { id: 'I-3', date: new Date().toISOString(), type: 'INVOICE', voucherNo: 'INV-2024-003', party: 'Raj Patel', amount: 25000 },
+  { id: 'P-2', date: new Date().toISOString(), type: 'PAYMENT', voucherNo: 'INV-2024-002', party: 'Jane Smith', amount: 8500, mode: 'UPI' },
+];
+
 export async function GET(req: NextRequest) {
   const session = await requireAuth(req);
   if (!session) return unauthorizedResponse();
+
+  // Return demo daybook in demo mode
+  if (isDemoMode()) {
+    const totalInvoiceAmount = DEMO_ENTRIES.filter(e => e.type === 'INVOICE').reduce((s, e) => s + e.amount, 0);
+    const totalPaymentAmount = DEMO_ENTRIES.filter(e => e.type === 'PAYMENT').reduce((s, e) => s + e.amount, 0);
+    
+    return successResponse({
+      date: new Date().toISOString().slice(0, 10),
+      totalEntries: DEMO_ENTRIES.length,
+      totalInvoiceAmount,
+      totalPaymentAmount,
+      entries: DEMO_ENTRIES,
+    });
+  }
 
   try {
     const url = new URL(req.url);
