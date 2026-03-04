@@ -68,6 +68,12 @@ export function getDemoRole(roleId: string | number) {
 }
 
 // Check if demo mode is enabled
+// Enable demo mode when:
+// 1. DEMO_MODE is explicitly set to 'true', OR
+// 2. No DATABASE_URL is configured (no database), OR
+// 3. Running in development mode
 export function isDemoMode(): boolean {
-  return process.env.DEMO_MODE === 'true' || process.env.NODE_ENV === 'development';
+  if (process.env.DEMO_MODE === 'true') return true;
+  if (!process.env.DATABASE_URL) return true;
+  return process.env.NODE_ENV === 'development';
 }
