@@ -7,11 +7,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
 import { verifyPassword, generateToken } from '@/app/lib/auth-utils';
 import { verifyDemoUser, isDemoMode } from '@/app/lib/demo-auth';
-
-const prisma = new PrismaClient();
 
 interface LoginPayload {
   email: string;
@@ -19,6 +16,8 @@ interface LoginPayload {
 }
 
 export async function POST(req: NextRequest) {
+  let prisma = null;
+  
   try {
     const { email, password }: LoginPayload = await req.json();
     const normalizedEmail = (email || '').trim().toLowerCase();
@@ -31,7 +30,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check if demo mode is enabled (always true for now to avoid DB issues)
+    // Check if demo mode is enabled
     const demoMode = isDemoMode();
     
     let user = null;
@@ -39,13 +38,17 @@ export async function POST(req: NextRequest) {
 
     if (demoMode) {
       // Use demo authentication
+      console.log('Using demo mode for login');
       const demoUser = await verifyDemoUser(normalizedEmail, password);
       if (demoUser) {
         user = demoUser;
         userRole = { name: demoUser.role };
       }
     } else {
-      // Use database authentication
+      // Use database authentication - import PrismaClient only when needed
+      const { PrismaClient } = await import('@prisma/client');
+      prisma = new PrismaClient();
+      
       user = await prisma.user.findUnique({
         where: { email: normalizedEmail },
         include: { role: true },
@@ -72,7 +75,7 @@ export async function POST(req: NextRequest) {
     }
 
     // For database mode, verify password
-    if (!demoMode && 'passwordHash' in user) {
+    if (!demoMode && prisma && 'passwordHash' in user) {
       const passwordMatch = await verifyPassword(password, user.passwordHash);
       if (!passwordMatch) {
         return NextResponse.json(
@@ -126,5 +129,10 @@ export async function POST(req: NextRequest) {
       { error: 'Login failed' },
       { status: 500 }
     );
+  } finally {
+    // Disconnect prisma if it was created
+    if (prisma) {
+      await prisma.$disconnect();
+    }
   }
 }
